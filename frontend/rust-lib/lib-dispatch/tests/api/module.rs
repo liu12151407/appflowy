@@ -1,21 +1,27 @@
-use lib_dispatch::prelude::*;
 use std::sync::Arc;
 
-pub async fn hello() -> String { "say hello".to_string() }
+use lib_dispatch::prelude::*;
+use lib_dispatch::runtime::AFPluginRuntime;
+
+pub async fn hello() -> String {
+  "say hello".to_string()
+}
 
 #[tokio::test]
 async fn test() {
-    env_logger::init();
-
-    let event = "1";
-    let dispatch = Arc::new(EventDispatcher::construct(|| vec![Module::new().event(event, hello)]));
-    let request = ModuleRequest::new(event);
-    let _ = EventDispatcher::async_send_with_callback(dispatch.clone(), request, |resp| {
-        Box::pin(async move {
-            dbg!(&resp);
-        })
+  let event = "1";
+  let runtime = Arc::new(AFPluginRuntime::new().unwrap());
+  let dispatch = Arc::new(AFPluginDispatcher::new(
+    runtime,
+    vec![AFPlugin::new().event(event, hello)],
+  ));
+  let request = AFPluginRequest::new(event);
+  let _ = AFPluginDispatcher::async_send_with_callback(dispatch.as_ref(), request, |resp| {
+    Box::pin(async move {
+      dbg!(&resp);
     })
-    .await;
+  })
+  .await;
 
-    std::mem::forget(dispatch);
+  std::mem::forget(dispatch);
 }
